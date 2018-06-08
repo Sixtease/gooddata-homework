@@ -5,8 +5,30 @@ import catalogJson from './catalog.json';
 
 const { ColumnChart } = AfmComponents;
 
-
 class App extends Component {
+    constructor(props = {}) {
+        super(props);
+        if (this.props.defaultYear) {
+            if (typeof this.props.defaultYear !== 'number') {
+                throw new Error('Invalid defaultYear prop passed to new App, number expected.');
+            }
+            this.defaultYear = this.props.defaultYear;
+        }
+        else {
+            this.defaultYear = this.getCurrentYear();
+        }
+        this.state = {
+            selectedYear: this.defaultYear,
+        };
+    }
+
+    getCurrentYear() {
+        if (!this.currentYear) {
+            this.currentYear = new Date().getFullYear();
+        }
+        return this.currentYear;
+    }
+
     getAfmMeasures() {
         return {
             measures: [{
@@ -20,11 +42,12 @@ class App extends Component {
         }
     }
 
-    getAfm() {
+    getAfmForSingleYear(year) {
+        const yearDelta = year - this.getCurrentYear();
         return {
             ...this.getAfmMeasures(),
             filters: [{
-                between: [-1, -1],
+                between: [yearDelta, yearDelta],
                 granularity: 'year',
                 id: catalogJson.dateDataSets['Date (Activity)'].identifier,
                 intervalType: 'relative',
@@ -45,7 +68,10 @@ class App extends Component {
 
     renderDropdown() {
         return (
-            <select defaultValue="2016">
+            <select
+                onChange={evt => this.setState({selectedYear: +evt.target.value})}
+                defaultValue={this.defaultYear}
+            >
                 <option value="2018">2018</option>
                 <option value="2017">2017</option>
                 <option value="2016">2016</option>
@@ -56,17 +82,14 @@ class App extends Component {
 
     render() {
         const projectId = 'la84vcyhrq8jwbu4wpipw66q2sqeb923';
-        const afm = this.getAfm();
         const afmAllYears = this.getAfmForAllYears();
+        const afm = this.getAfmForSingleYear(this.state.selectedYear);
 
         return (
             <div className="App">
                 <h1># of Activities: Year {this.renderDropdown()}</h1>
                 <div>
-                    <ColumnChart
-                        afm={afm}
-                        projectId={projectId}
-                    />
+                    <ColumnChart afm={afm} projectId={projectId} />
                 </div>
                 <h1># of Activities: Overview (Year by Year)</h1>
                 <div>
